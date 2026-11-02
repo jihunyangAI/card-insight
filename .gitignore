@@ -1,0 +1,8 @@
+# 지출 데이터가 담긴 산출물•메모리는 커밋하지 않는다 (guardrails.md: 외부에 금액•가맹점명 전송 금지)
+output/**
+!output/card-report/
+!output/card-report/.gitkeep
+memory/card/*.json
+__pycache__/
+*.pyc
+~$*
