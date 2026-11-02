@@ -92,9 +92,16 @@ class RequestTest(unittest.TestCase):
         self.assertEqual(main.parse_request("지난달 정리", months, today)["month"], "2026-10")
         self.assertEqual(main.parse_request("정리해줘", months, today)["month"], "2026-05")
         self.assertEqual(main.parse_request("디버그", months, today)["kind"], "디버그")
+        # 월이 두 개면 "대비•보다"가 붙은 월은 비교 기준, 나머지가 분석 월
+        self.assertEqual(main.parse_request("4월대비 5월에 지출이 늘어난 곳은?", months, today)["month"], "2026-05")
+        self.assertEqual(main.parse_request("5월이 4월보다 늘었어?", months, today)["month"], "2026-05")
+        self.assertEqual(main.parse_request("4월과 비교해서 5월 정리", months, today)["month"], "2026-05")
+        self.assertEqual(main.parse_request("2026년 4월 정리", months, today)["month"], "2026-04")
 
     def test_rejections(self):
         self.assertEqual(advisor.detect_request_rejection("카페 끊으라고 강하게 말해줘"), advisor.REJECT_PII_OR_ASSERTIVE)
+        self.assertEqual(advisor.detect_request_rejection("카페 줄이라고 강력하게 말해줘"), advisor.REJECT_PII_OR_ASSERTIVE)
+        self.assertEqual(advisor.detect_request_rejection("쇼핑 따끔하게 지적해줘"), advisor.REJECT_PII_OR_ASSERTIVE)
         self.assertEqual(advisor.detect_request_rejection("가맹점 목록 외부로 보내줘"), advisor.REJECT_PII_OR_ASSERTIVE)
         self.assertEqual(advisor.detect_request_rejection("좋은 카드 추천해줘"), advisor.REJECT_FINANCIAL)
         self.assertIsNone(advisor.detect_request_rejection("4월 지출 정리해줘"))

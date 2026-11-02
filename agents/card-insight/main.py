@@ -22,6 +22,10 @@ DEFAULT_INPUT = ROOT.parent / "harness-book-samples" / "card-insight"
 OUTPUT_DIR = ROOT / "output" / "card-report"
 MEMORY_DIR = ROOT / "memory" / "card"
 TIME_LIMIT_SECONDS = 60
+MONTH_RE = re.compile(
+    r"(?:(?P<year>\d{4})\s*년\s*)?(?<!\d)(?P<month>\d{1,2})\s*월"
+    r"(?P<base>\s*(?:대비|보다|에\s*비해|과\s*비교|와\s*비교))?"
+)
 
 
 def parse_request(text, months, today):
@@ -34,13 +38,20 @@ def parse_request(text, months, today):
         kind = "리포트"
 
     month = None
-    if m := (re.search(r"(\d{4})\s*년\s*(\d{1,2})\s*월", text) or re.search(r"(\d{4})[-./](\d{1,2})(?!\d)", text)):
+    # 월이 여러 개면 "대비•보다•에 비해•와/과 비교"가 붙은 월은 비교 기준으로 보고, 나머지 중 마지막 월을 분석 월로 쓴다
+    mentions = list(MONTH_RE.finditer(text))
+    targets = [m for m in mentions if not m["base"]] or mentions
+    if targets:
+        m = targets[-1]
+        mon = int(m["month"])
+        if m["year"]:
+            month = f"{int(m['year']):04d}-{mon:02d}" if 1 <= mon <= 12 else None
+        else:
+            candidates = [k for k in months if int(k[5:]) == mon]
+            month = max(candidates) if candidates else (f"{today.year:04d}-{mon:02d}" if 1 <= mon <= 12 else None)
+    elif m := re.search(r"(\d{4})[-./](\d{1,2})(?!\d)", text):
         year, mon = int(m[1]), int(m[2])
         month = f"{year:04d}-{mon:02d}" if 1 <= mon <= 12 else None
-    elif m := re.search(r"(?<!\d)(\d{1,2})\s*월", text):
-        mon = int(m[1])
-        candidates = [k for k in months if int(k[5:]) == mon]
-        month = max(candidates) if candidates else (f"{today.year:04d}-{mon:02d}" if 1 <= mon <= 12 else None)
     elif re.search(r"이번\s*달|이달|금월", text):
         month = month_key(today)
     elif re.search(r"지난\s*달|저번\s*달", text):
